@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecurePay — Transaction Risk System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── Variables ─────────────────────────────── */
+    :root {
+      --bg:        #0a0c10;
+      --surface:   #11141b;
+      --surface2:  #181c26;
+      --border:    #232840;
+      --accent:    #3d6fff;
+      --accent2:   #00e5c0;
+      --danger:    #ff3c5c;
+      --warn:      #ffb340;
+      --ok:        #00e5a0;
+      --text:      #e8ecf4;
+      --muted:     #5c6480;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'Syne', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid background ───────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(61,111,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(61,111,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ─────────────────────────────────── */
+    #app {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span { color: var(--accent2); }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #user-badge {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      display: none;
+    }
+
+    #logout-btn {
+      display: none;
+      padding: 8px 18px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Cards ───────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    /* ── Forms ───────────────────────────────────── */
+    .form-group { margin-bottom: 16px; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    select option { background: var(--surface2); }
+
+    /* ── Buttons ─────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #5480ff; transform: translateY(-1px); }
+
+    .btn-success {
+      background: var(--ok);
+      color: #000;
+    }
+    .btn-success:hover { background: #00ffb2; transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* ── Tabs ─────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 32px;
+    }
+
+    .tab {
+      padding: 10px 22px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      background: var(--surface2);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    /* ── Risk Badge ───────────────────────────────── */
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .risk-low    { background: rgba(0,229,160,0.12); color: var(--ok); }
+    .risk-medium { background: rgba(255,179,64,0.12); color: var(--warn); }
+    .risk-high   { background: rgba(255,60,92,0.12);  color: var(--danger); }
+
+    /* ── Status Badge ─────────────────────────────── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-family: var(--mono);
+      font-weight: 600;
+    }
+    .status-Completed    { background: rgba(0,229,160,0.12); color: var(--ok); }
+    .status-Blocked      { background: rgba(255,60,92,0.12);  color: var(--danger); }
+    .status-Pending      { background: rgba(61,111,255,0.12); color: var(--accent); }
+    .status-OTP_Required { background: rgba(255,179,64,0.12); color: var(--warn); }
+
+    /* ── Alert Boxes ──────────────────────────────── */
+    .alert {
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+    }
+    .alert-info    { background: rgba(61,111,255,0.10); border: 1px solid rgba(61,111,255,0.25); color: #9db4ff; }
+    .alert-success { background: rgba(0,229,160,0.10); border: 1px solid rgba(0,229,160,0.25); color: var(--ok); }
+    .alert-warning { background: rgba(255,179,64,0.10); border: 1px solid rgba(255,179,64,0.25); color: var(--warn); }
+    .alert-danger  { background: rgba(255,60,92,0.10);  border: 1px solid rgba(255,60,92,0.25);  color: var(--danger); }
+
+    /* ── Risk Score Meter ─────────────────────────── */
+    .risk-meter {
+      margin: 24px 0;
+    }
+    .risk-meter-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .risk-meter-bar {
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .risk-meter-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.6s ease;
+    }
+
+    /* ── Transaction Table ───────────────────────── */
+    .txn-table { width: 100%; border-collapse: collapse; }
+    .txn-table th {
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      padding: 0 12px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .txn-table td {
+      padding: 14px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(35,40,64,0.5);
+      vertical-align: middle;
+    }
+    .txn-table tr:last-child td { border-bottom: none; }
+    .txn-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ── Auth Split ───────────────────────────────── */
+    .auth-wrap {
+      max-width: 440px;
+      margin: 60px auto;
+    }
+
+    .auth-hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .auth-hero h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+    .auth-hero p  { color: var(--muted); font-size: 14px; }
+
+    /* ── OTP Box ──────────────────────────────────── */
+    .otp-box {
+      background: linear-gradient(135deg, rgba(61,111,255,0.08), rgba(0,229,192,0.05));
+      border: 1px solid rgba(61,111,255,0.3);
+      border-radius: 16px;
+      padding: 28px;
+      margin-top: 20px;
+    }
+    .otp-box h3 { font-size: 16px; margin-bottom: 6px; color: var(--accent2); }
+    .otp-box p  { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+    /* ── Factor List ──────────────────────────────── */
+    .factor-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(35,40,64,0.6);
+      font-size: 13px;
+    }
+    .factor-item:last-child { border-bottom: none; }
+    .factor-name { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+    .factor-val  { font-family: var(--mono); font-size: 12px; }
+
+    /* ── Spinner ──────────────────────────────────── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Animations ───────────────────────────────── */
+    .fade-in {
+      animation: fadeIn 0.35s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Utility ──────────────────────────────────── */
+    .hidden  { display: none !important; }
+    .mt-16   { margin-top: 16px; }
+    .mt-24   { margin-top: 24px; }
+    .muted   { color: var(--muted); font-size: 13px; }
+    .mono    { font-family: var(--mono); }
+    .center  { text-align: center; }
+    .flex    { display: flex; }
+    .gap-12  { gap: 12px; }
+    .w-full  { width: 100%; }
+    .row     { display: flex; gap: 24px; }
+    .col     { flex: 1; }
+
+    @media (max-width: 680px) {
+      .row { flex-direction: column; }
+      header { flex-direction: column; gap: 16px; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔐</div>
+      <div class="logo-text">Secure<span>Pay</span></div>
+    </div>
+    <div class="header-right">
+      <span id="user-badge">● <span id="user-name-disp"></span></span>
+      <button id="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ AUTH VIEW ═══════════════════ -->
+  <div id="auth-view" class="auth-wrap fade-in">
+    <div class="auth-hero">
+      <h1>Fraud-Proof<br>Transactions</h1>
+      <p>AI-powered risk engine protects every payment</p>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="switchAuth('login')">Sign In</button>
+        <button class="tab" onclick="switchAuth('register')">Register</button>
+      </div>
+
+      <!-- Login -->
+      <div id="login-form">
+        <div class="form-group">
+          <label>Username</label>
+          <input id="login-username" type="text" placeholder="your_username" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input id="login-password" type="password" placeholder="••••••••" />
+        </div>
+        <div id="login-error" class="alert alert-danger hidden"></div>
+        <button class="btn btn-primary w-full mt-16" onclick="login()" id="login-btn">
+          Sign In →
+        </button>
+      </div>
+
+      <!-- Register -->
+      <div id="register-form" class="hidden">
+        <div class="form-group">
+          <label>Username</label>
+          <input id="reg-username" type="text" placeholder="your_username" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input id="reg-email" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input id="reg-password" type="password" placeholder="Min 6 characters" />
+        </div>
+        <div id="register-error" class="alert alert-danger hidden"></div>
+        <div id="register-success" class="alert alert-success hidden"></div>
+        <button class="btn btn-primary w-full mt-16" onclick="register()" id="reg-btn">
+          Create Account →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MAIN VIEW ═══════════════════ -->
+  <div id="main-view" class="hidden fade-in">
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('send')">💸 Send Money</button>
+      <button class="tab" onclick="showTab('history')">📋 History</button>
+    </div>
+
+    <!-- ── SEND MONEY TAB ── -->
+    <div id="tab-send">
+      <div class="row">
+        <!-- Left: Transaction form -->
+        <div class="col">
+          <div class="card">
+            <div class="card-title">New Transaction</div>
+
+            <div class="form-group">
+              <label>Send To</label>
+              <select id="receiver-select">
+                <option value="">— Select receiver —</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Amount (₹)</label>
+              <input id="amount-input" type="number" placeholder="0.00" min="1" step="0.01" />
+            </div>
+
+            <div id="send-error"   class="alert alert-danger hidden"></div>
+            <div id="send-success" class="alert alert-success hidden"></div>
+
+            <button class="btn btn-primary w-full mt-16" id="send-btn" onclick="createTransaction()">
+              Analyse & Send →
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Risk result -->
+        <div class="col">
+          <div id="risk-panel" class="card hidden fade-in">
+            <div class="card-title">Risk Assessment</div>
+
+            <!-- Score meter -->
+            <div class="risk-meter">
+              <div class="risk-meter-label">
+                <span>Risk Score</span>
+                <span id="risk-score-val" class="mono" style="font-weight:600">—</span>
+              </div>
+              <div class="risk-meter-bar">
+                <div id="risk-meter-fill" class="risk-meter-fill" style="width:0%"></div>
+              </div>
+            </div>
+
+            <!-- Decision badge -->
+            <div style="margin-bottom:16px;">
+              <span id="risk-decision-badge" class="risk-badge">—</span>
+            </div>
+
+            <!-- Warnings -->
+            <div id="risk-warnings"></div>
+
+            <!-- Trust score -->
+            <div class="factor-item mt-16">
+              <span class="factor-name">RECEIVER TRUST</span>
+              <span class="factor-val" id="trust-score-val">—</span>
+            </div>
+
+            <!-- Risk factors breakdown -->
+            <div id="factor-list" class="mt-16"></div>
+          </div>
+
+          <!-- OTP Box -->
+          <div id="otp-panel" class="otp-box hidden fade-in">
+            <h3>🔐 OTP Verification Required</h3>
+            <p>An OTP has been sent. Check the backend console.<br>Enter it below to complete the transaction.</p>
+            <div class="form-group">
+              <label>6-Digit OTP</label>
+              <input id="otp-input" type="text" placeholder="123456" maxlength="6" />
+            </div>
+            <div id="otp-error" class="alert alert-danger hidden"></div>
+            <button class="btn btn-success w-full" onclick="verifyOTP()">Verify & Complete →</button>
+          </div>
+
+          <!-- Block message -->
+          <div id="block-panel" class="hidden fade-in">
+            <div class="alert alert-danger" style="font-size:15px; padding: 20px;">
+              <div>
+                <strong style="font-size:16px;">🚫 Transaction Blocked</strong><br><br>
+                <span id="block-reason"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completed message -->
+          <div id="success-panel" class="hidden fade-in">
+            <div class="alert alert-success" style="font-size:15px; padding: 20px;">
+              <div>
+                <strong style="font-size:16px;">✅ Transaction Completed</strong><br><br>
+                <span id="success-msg"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY TAB ── -->
+    <div id="tab-history" class="hidden">
+      <div class="card">
+        <div class="card-title">Transaction History</div>
+        <div id="history-loading" class="muted center" style="padding:30px">Loading...</div>
+        <div id="history-empty"  class="muted center hidden" style="padding:30px">No transactions yet.</div>
+        <div id="history-table-wrap" class="hidden">
+          <table class="txn-table">
+            <thead>
+              <tr>
+                <th>TXN ID</th>
+                <th>TO</th>
+                <th>AMOUNT</th>
+                <th>STATUS</th>
+                <th>RISK</th>
+                <th>TIME</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+  let token = localStorage.getItem('token') || null;
+  let currentTxnId = null;
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  (function init() {
+    if (token) {
+      showMain();
+    }
+  })();
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  function switchAuth(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+    event.target.classList.add('active');
+  }
+
+  async function login() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    const btn   = document.getElementById('login-btn');
+
+    if (!username || !password) { showError(errEl, 'Please fill in all fields.'); return; }
+
+    btn.innerHTML = '<span class="spinner"></span> Signing in...';
+    btn.disabled = true;
+    errEl.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Login failed');
+
+      token = data.access_token;
+      localStorage.setItem('token', token);
+      localStorage.setItem('username', data.username);
+      showMain();
+    } catch (e) {
+      showError(errEl, e.message);
+    } finally {
+      btn.innerHTML = 'Sign In →';
+      btn.disabled = false;
+    }
+  }
+
+  async function register() {
+    const username = document.getElementById('reg-username').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const errEl    = document.getElementById('register-error');
+    const sucEl    = document.getElementById('register-success');
+    const btn      = document.getElementById('reg-btn');
+
+    if (!username || !email || !password) { showError(errEl, 'Please fill in all fields.'); return; }
+
+    btn.innerHTML = '<span class="spinner"></span> Creating account...';
+    btn.disabled = true;
+    errEl.classList.add('hidden');
+    sucEl.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Registration failed');
+
+      sucEl.textContent = '✓ Account created! You can now sign in.';
+      sucEl.classList.remove('hidden');
+      setTimeout(() => switchAuth('login'), 1500);
+    } catch (e) {
+      showError(errEl, e.message);
+    } finally {
+      btn.innerHTML = 'Create Account →';
+      btn.disabled = false;
+    }
+  }
+
+  function logout() {
+    token = null;
+    localStorage.clear();
+    document.getElementById('main-view').classList.add('hidden');
+    document.getElementById('auth-view').classList.remove('hidden');
+    document.getElementById('user-badge').style.display = 'none';
+    document.getElementById('logout-btn').style.display = 'none';
+  }
+
+  // ── Show Main ─────────────────────────────────────────────────────────────
+  async function showMain() {
+    document.getElementById('auth-view').classList.add('hidden');
+    document.getElementById('main-view').classList.remove('hidden');
+
+    const username = localStorage.getItem('username') || 'User';
+    document.getElementById('user-name-disp').textContent = username;
+    document.getElementById('user-badge').style.display = 'inline';
+    document.getElementById('logout-btn').style.display = 'inline-flex';
+
+    await loadReceivers();
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  function showTab(tab) {
+    document.getElementById('tab-send').classList.toggle('hidden', tab !== 'send');
+    document.getElementById('tab-history').classList.toggle('hidden', tab !== 'history');
+
+    document.querySelectorAll('.tabs .tab').forEach((t, i) => {
+      t.classList.toggle('active', (tab === 'send' && i === 0) || (tab === 'history' && i === 1));
+    });
+
+    if (tab === 'history') loadHistory();
+  }
+
+  // ── Load Receivers ────────────────────────────────────────────────────────
+  async function loadReceivers() {
+    try {
+      const res  = await fetch(`${API}/api/auth/users`, { headers: authHeaders() });
+      const list = await res.json();
+      const sel  = document.getElementById('receiver-select');
+      sel.innerHTML = '<option value="">— Select receiver —</option>';
+      list.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `${u.username} (${u.email})`;
+        sel.appendChild(opt);
+      });
+    } catch (e) { console.error('Could not load users', e); }
+  }
+
+  // ── Create Transaction ────────────────────────────────────────────────────
+  async function createTransaction() {
+    const receiver_id = document.getElementById('receiver-select').value;
+    const amount      = parseFloat(document.getElementById('amount-input').value);
+    const errEl       = document.getElementById('send-error');
+    const btn         = document.getElementById('send-btn');
+
+    if (!receiver_id) { showError(errEl, 'Please select a receiver.'); return; }
+    if (!amount || amount <= 0) { showError(errEl, 'Enter a valid amount.'); return; }
+
+    // Reset panels
+    ['risk-panel','otp-panel','block-panel','success-panel'].forEach(id =>
+      document.getElementById(id).classList.add('hidden')
+    );
+    errEl.classList.add('hidden');
+    currentTxnId = null;
+
+    btn.innerHTML = '<span class="spinner"></span> Analysing risk...';
+    btn.disabled = true;
+
+    try {
+      const res  = await fetch(`${API}/api/transactions/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ receiver_id, amount })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Transaction failed');
+
+      renderRiskPanel(data);
+
+      if (data.decision === 'BLOCK') {
+        document.getElementById('block-panel').classList.remove('hidden');
+        document.getElementById('block-reason').textContent =
+          data.warnings.join(' ') || 'Transaction blocked due to high risk.';
+      } else if (data.decision === 'OTP') {
+        currentTxnId = data.transaction_id;
+        document.getElementById('otp-panel').classList.remove('hidden');
+        document.getElementById('otp-input').value = '';
+      } else {
+        document.getElementById('success-panel').classList.remove('hidden');
+        document.getElementById('success-msg').textContent =
+          `₹${amount.toLocaleString()} sent successfully. TXN: ${data.transaction_id.slice(0,12)}...`;
+      }
+
+    } catch (e) {
+      showError(errEl, e.message);
+    } finally {
+      btn.innerHTML = 'Analyse & Send →';
+      btn.disabled = false;
+    }
+  }
+
+  // ── Render Risk Panel ─────────────────────────────────────────────────────
+  function renderRiskPanel(data) {
+    const panel = document.getElementById('risk-panel');
+    panel.classList.remove('hidden');
+
+    const score    = data.risk_score;
+    const pct      = Math.round(score * 100);
+    const decision = data.decision;
+
+    // Score meter
+    document.getElementById('risk-score-val').textContent = score.toFixed(3);
+    const fill = document.getElementById('risk-meter-fill');
+    fill.style.width = `${pct}%`;
+    fill.style.background = score < 0.3
+      ? 'var(--ok)'
+      : score < 0.7 ? 'var(--warn)' : 'var(--danger)';
+
+    // Decision badge
+    const badge = document.getElementById('risk-decision-badge');
+    badge.className = 'risk-badge';
+    if (decision === 'ALLOW') {
+      badge.classList.add('risk-low');
+      badge.textContent = '✓ LOW RISK — Allowed';
+    } else if (decision === 'OTP') {
+      badge.classList.add('risk-medium');
+      badge.textContent = '⚠ MEDIUM RISK — OTP Required';
+    } else {
+      badge.classList.add('risk-high');
+      badge.textContent = '✗ HIGH RISK — Blocked';
+    }
+
+    // Warnings
+    const warnDiv = document.getElementById('risk-warnings');
+    warnDiv.innerHTML = '';
+    (data.warnings || []).forEach(w => {
+      const el = document.createElement('div');
+      el.className = 'alert alert-warning';
+      el.style.marginBottom = '8px';
+      el.textContent = '⚠ ' + w;
+      warnDiv.appendChild(el);
+    });
+
+    // Trust score
+    document.getElementById('trust-score-val').textContent =
+      (data.trust_score !== undefined ? data.trust_score.toFixed(3) : '—');
+  }
+
+  // ── Verify OTP ─────────────────────────────────────────────────────────────
+  async function verifyOTP() {
+    const otp    = document.getElementById('otp-input').value.trim();
+    const errEl  = document.getElementById('otp-error');
+
+    if (!otp || otp.length !== 6) { showError(errEl, 'Enter a 6-digit OTP.'); return; }
+    if (!currentTxnId) { showError(errEl, 'No pending transaction.'); return; }
+
+    errEl.classList.add('hidden');
+
+    try {
+      const res  = await fetch(`${API}/api/transactions/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ transaction_id: currentTxnId, otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'OTP verification failed');
+
+      document.getElementById('otp-panel').classList.add('hidden');
+      document.getElementById('success-panel').classList.remove('hidden');
+      document.getElementById('success-msg').textContent =
+        `₹${data.amount.toLocaleString()} sent after OTP verification. TXN: ${data.transaction_id.slice(0,12)}...`;
+      currentTxnId = null;
+
+    } catch (e) {
+      showError(errEl, e.message);
+    }
+  }
+
+  // ── Load History ──────────────────────────────────────────────────────────
+  async function loadHistory() {
+    const loading = document.getElementById('history-loading');
+    const empty   = document.getElementById('history-empty');
+    const wrap    = document.getElementById('history-table-wrap');
+    const tbody   = document.getElementById('history-tbody');
+
+    loading.classList.remove('hidden');
+    empty.classList.add('hidden');
+    wrap.classList.add('hidden');
+    tbody.innerHTML = '';
+
+    try {
+      const res  = await fetch(`${API}/api/transactions/history`, { headers: authHeaders() });
+      const list = await res.json();
+
+      loading.classList.add('hidden');
+
+      if (!list.length) { empty.classList.remove('hidden'); return; }
+
+      wrap.classList.remove('hidden');
+      list.forEach(t => {
+        const risk      = t.risk_score;
+        const riskClass = risk < 0.3 ? 'risk-low' : risk < 0.7 ? 'risk-medium' : 'risk-high';
+        const dt        = t.timestamp ? new Date(t.timestamp).toLocaleString() : '—';
+
+        tbody.innerHTML += `
+          <tr>
+            <td class="mono" style="font-size:11px;color:var(--muted)">${t.transaction_id.slice(0,12)}…</td>
+            <td>${t.receiver_name || t.receiver_id.slice(0,8)}</td>
+            <td class="mono">₹${Number(t.amount).toLocaleString()}</td>
+            <td><span class="status-badge status-${t.status}">${t.status}</span></td>
+            <td><span class="risk-badge ${riskClass}">${risk.toFixed(2)}</span></td>
+            <td class="muted" style="font-size:12px">${dt}</td>
+          </tr>`;
+      });
+    } catch (e) {
+      loading.textContent = 'Failed to load history.';
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function authHeaders() {
+    return { Authorization: `Bearer ${token}` };
+  }
+
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
